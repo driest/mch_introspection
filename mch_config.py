@@ -120,12 +120,14 @@ def print_mch_config():
         print("MCH vendor id 0x{:04x} ".format(mch_config["vendor_id"]) +
               "or device id 0x{:04x} unknown".format(mch_config["device_id"]))
     print("MCH configuration:\n" +
-        "TSEGMB:     0x{:016x}\n".format(mch_config["tsegmb"]) +
-        "TOLUD:      0x{:016x}\n".format(mch_config["tolud"]) +
-        "TOM:        0x{:016x}\n".format(mch_config["tom"]) +
-        "REMAPBASE:  0x{:016x}\n".format(mch_config["remap_base"]) +
-        "REMAPLIMIT: 0x{:016x}\n".format(mch_config["remap_limit"]) +
-        "TOUUD:      0x{:016x}\n".format(mch_config["touud"]) +
+        "Top Segment Memory Base:   0x{:016x}\n".format(mch_config["tsegmb"]) +
+        "Base of GFX stolen Memory: 0x{:016x}\n".format(mch_config["bdsm"]) +
+        "Base of GTT stolen Memory: 0x{:016x}\n".format(mch_config["bgsm"]) +
+        "Top of Low Usable DRAM:    0x{:016x}\n".format(mch_config["tolud"]) +
+        "Remap Base:                0x{:016x}\n".format(mch_config["remap_base"]) +
+        "Remap Limit:               0x{:016x}\n".format(mch_config["remap_limit"]) +
+        "Top of Upper Usable DRAM:  0x{:016x}\n".format(mch_config["touud"]) +
+        "Top of Memory:             0x{:016x}\n".format(mch_config["tom"]) +
         "(least significant bit is lock flag)"
     )
 
