@@ -32,7 +32,7 @@ MCH_BDF = (0, 0, 0)
 # a warning if the memory controller is not known. Insert ids for devices
 # here were you know that their config layout is compatible.
 VENDOR_IDS = [0x8086]
-DEVICE_IDS = [0x0100, 0x0104]
+DEVICE_IDS = [0x0100, 0x0104, 0150, 0154]
 
 PCI_CONFIG_ADDRESS = 0xcf8
 PCI_CONFIG_DATA = 0xcfc
