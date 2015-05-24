@@ -1,17 +1,18 @@
 #!/usr/bin/env python
+"""
+This module extracts the configuration of an Intel memory controller
+out of PCI configuration space by using port I/O.
 
-# This module extracts the configuration of an Intel memory controller
-# out of PCI configuration space by using port I/O.
-#
-# The configuration space for Intel memory controllers is specified
-# inside the processors datasheet and is the same for all core CPUs
-# from 2nd generation (Sandy Bridge) to 5th generation (Broadwell).
-#
-# On Intel CPUs older than Sandy Bridge the layout is different and
-# this module will not work.
-#
-# Information on memory controller PCI configuration can be found in
-# Volume 2 of the corresponding processor datasheet: http://goo.gl/WpMju1
+The configuration space for Intel memory controllers is specified
+inside the processors datasheet and is the same for all core CPUs
+from 2nd generation (Sandy Bridge) to 5th generation (Broadwell).
+
+On Intel CPUs older than Sandy Bridge the layout is different and
+this module will not work.
+
+Information on memory controller PCI configuration can be found in
+Volume 2 of the corresponding processor datasheet: http://goo.gl/WpMju1
+"""
 
 from __future__ import print_function
 
@@ -32,7 +33,7 @@ MCH_BDF = (0, 0, 0)
 # a warning if the memory controller is not known. Insert ids for devices
 # here were you know that their config layout is compatible.
 VENDOR_IDS = [0x8086]
-DEVICE_IDS = [0x0100, 0x0104, 0150, 0154]
+DEVICE_IDS = [0x0100, 0x0104, 0x0150, 0x0154]
 
 PCI_CONFIG_ADDRESS = 0xcf8
 PCI_CONFIG_DATA = 0xcfc
@@ -87,9 +88,9 @@ def unpack_structure(definition, data):
     structure = {}
     for name, data_type, size in definition:
         if pos + size > len(data):
-            raise Exception("Can't unpack more than {} ".format(pos + size) +
-                            "bytes from structure of size {}".format(len(data)))
-        if not "reserved" in name:
+            raise RuntimeError("Unpacking {} bytes from struct size {}".format(
+                pos + size, len(data)))
+        if "reserved" not in name:
             structure[name] = unpack(data_type, data[pos:pos+size])[0]
         pos += size
     return structure
@@ -98,16 +99,13 @@ def encode_config_address(bus, device, function, register):
     return bus << 16 | device << 11 | function << 8 | register
 
 def pci_config_seek(bus, device, function, register):
-    outl(
-        PCI_CONFIG_ENABLE |
-            encode_config_address(bus, device, function, register),
-        PCI_CONFIG_ADDRESS
-    )
+    target_address = encode_config_address(bus, device, function, register)
+    outl(PCI_CONFIG_ENABLE | target_address, PCI_CONFIG_ADDRESS)
 
 def read_pci_config(bus, device, function):
     buf = []
-    offsets = range(0, 0xff, 0x4)
-    for offset in offsets:
+    register_offsets = range(0, 0xff, 0x4)
+    for offset in register_offsets:
         pci_config_seek(bus, device, function, offset)
         buf.append(pack("<I", inl(PCI_CONFIG_DATA)))
     return "".join(buf)
@@ -115,20 +113,21 @@ def read_pci_config(bus, device, function):
 def print_mch_config():
     raw_config = read_pci_config(*MCH_BDF)
     mch_config = unpack_structure(PCIMCHConfig, raw_config)
-    if (mch_config["vendor_id"] not in VENDOR_IDS or
-        mch_config["device_id"] not in DEVICE_IDS):
-        print("MCH vendor id 0x{:04x} ".format(mch_config["vendor_id"]) +
-              "or device id 0x{:04x} unknown".format(mch_config["device_id"]))
-    print("MCH configuration:\n" +
-        "Top Segment Memory Base:   0x{:016x}\n".format(mch_config["tsegmb"]) +
-        "Base of GFX stolen Memory: 0x{:016x}\n".format(mch_config["bdsm"]) +
-        "Base of GTT stolen Memory: 0x{:016x}\n".format(mch_config["bgsm"]) +
-        "Top of Low Usable DRAM:    0x{:016x}\n".format(mch_config["tolud"]) +
-        "Remap Base:                0x{:016x}\n".format(mch_config["remap_base"]) +
-        "Remap Limit:               0x{:016x}\n".format(mch_config["remap_limit"]) +
-        "Top of Upper Usable DRAM:  0x{:016x}\n".format(mch_config["touud"]) +
-        "Top of Memory:             0x{:016x}\n".format(mch_config["tom"]) +
-        "(least significant bit is lock flag)"
+    if mch_config["vendor_id"] not in VENDOR_IDS:
+        print("Unknown vendor id for MCH: {:#04x} ".format(
+            mch_config["vendor_id"]))
+    if mch_config["device_id"] not in DEVICE_IDS:
+        print("Unknown device id for MCH: {:#04x}".format(
+            mch_config["device_id"]))
+    print("MCH configuration (least significant bit is lock flag)\n"
+        "Top Segment Memory Base:   {:#016x}\n".format(mch_config["tsegmb"]) +
+        "Base of GFX stolen Memory: {:#016x}\n".format(mch_config["bdsm"]) +
+        "Base of GTT stolen Memory: {:#016x}\n".format(mch_config["bgsm"]) +
+        "Top of Low Usable DRAM:    {:#016x}\n".format(mch_config["tolud"]) +
+        "Remap Base:                {:#016x}\n".format(mch_config["remap_base"]) +
+        "Remap Limit:               {:#016x}\n".format(mch_config["remap_limit"]) +
+        "Top of Upper Usable DRAM:  {:#016x}\n".format(mch_config["touud"]) +
+        "Top of Memory:             {:#016x}\n".format(mch_config["tom"])
     )
 
 if __name__ == "__main__":
